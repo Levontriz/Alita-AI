@@ -1,4 +1,5 @@
 import json
+import os
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any, Dict
@@ -6,8 +7,32 @@ from typing import Any, Dict
 import discord
 from openai import OpenAI
 
+ENV_FILE = Path(__file__).with_name(".env")
+
+
+def load_env_file():
+    if not ENV_FILE.exists():
+        return
+
+    for raw_line in ENV_FILE.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        key, sep, value = line.partition("=")
+        if not sep:
+            continue
+
+        os.environ.setdefault(key.strip(), value.strip().strip("\"'").strip())
+
+
+load_env_file()
+
 # Configuration
-DISCORD_TOKEN = "MTMyMzk3MDYxMjI1MDgwNDI5OA.GJ0qIw.dDNECw15a7MwbdMKC5QK3_dnSX9-2tbTR0CpZU"
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN") or os.getenv("token")
+if not DISCORD_TOKEN:
+    raise RuntimeError("Missing DISCORD_TOKEN in environment or .env file.")
+
 # LM Studio defaults to localhost:1234. No API key required, but a placeholder is needed.
 LM_STUDIO_CLIENT = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
 BOT_NAME = "Alita"
@@ -280,4 +305,6 @@ async def on_message(message):
     )
     save_conversation_memory(conversation_memory)
 
-client.run(DISCORD_TOKEN)
+
+if __name__ == "__main__":
+    client.run(DISCORD_TOKEN)
